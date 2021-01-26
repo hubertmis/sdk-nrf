@@ -1,0 +1,3 @@
+sample:
+  description: Test if nRF53 net can use SPIM from app core
+  name: nRF53 SPIM from app to net test

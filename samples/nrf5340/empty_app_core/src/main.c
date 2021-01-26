@@ -25,10 +25,12 @@ void disable_ram_and_wfi(register volatile uint32_t *reg_begin,
 {
 	__disable_irq();
 
+#if 0
 	do {
 		*reg_begin = 0;
 		reg_begin += sizeof(NRF_VMC->RAM[0]) / sizeof(reg_begin[0]);
 	} while (reg_begin <= reg_last);
+#endif
 
 	__DSB();
 	do {
@@ -53,6 +55,7 @@ static int network_gpio_allow(const struct device *dev)
 {
 	ARG_UNUSED(dev);
 
+#if 0
 	/* When the use of the low frequency crystal oscillator (LFXO) is
 	 * enabled, do not modify the configuration of the pins P0.00 (XL1)
 	 * and P0.01 (XL2), as they need to stay configured with the value
@@ -70,6 +73,7 @@ static int network_gpio_allow(const struct device *dev)
 		NRF_P1_S->PIN_CNF[i] = (GPIO_PIN_CNF_MCUSEL_NetworkMCU <<
 					GPIO_PIN_CNF_MCUSEL_Pos);
 	}
+#endif
 
 
 	return 0;
