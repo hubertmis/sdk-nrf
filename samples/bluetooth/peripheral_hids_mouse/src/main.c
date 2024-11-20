@@ -8,6 +8,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <errno.h>
+#include <zephyr/random/random.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/kernel.h>
@@ -27,6 +28,9 @@
 #include <bluetooth/services/hids.h>
 #include <zephyr/bluetooth/services/dis.h>
 #include <dk_buttons_and_leds.h>
+
+#define CSPRNG_TEST 1
+#define MPU_TEST 0
 
 #define DEVICE_NAME     CONFIG_BT_DEVICE_NAME
 #define DEVICE_NAME_LEN (sizeof(DEVICE_NAME) - 1)
@@ -779,12 +783,61 @@ static void bas_notify(void)
 	bt_bas_set_battery_level(battery_level);
 }
 
+#if CSPRNG_TEST
+static void csprng_test(void)
+{
+	int err;
+	uint8_t rnd_buf[1024];
+	uint32_t ts_before = k_cycle_get_32();
+	err = sys_csrand_get(rnd_buf, sizeof(rnd_buf));
+	uint32_t ts_after = k_cycle_get_32();
+	printk("Time taken for CSPRNG generation of %d bytes: %d\n",
+			sizeof(rnd_buf), k_cyc_to_us_ceil32(ts_after - ts_before));
+
+	printk("Generation of CSPRNG result: %d\n", err);
+	for (size_t i = 0; i < sizeof(rnd_buf); i++) {
+		printk ("%02x", rnd_buf[i]);
+		if (i % 32 == 31) {
+			printk("\n");
+		}
+	}
+	printk("\n");
+
+	size_t num_chunks = 128;
+	size_t chunk_size = sizeof(rnd_buf) / num_chunks;
+	ts_before = k_cycle_get_32();
+	for (size_t i = 0; i < num_chunks; i++) {
+		err = sys_csrand_get(rnd_buf + i * chunk_size, chunk_size);
+	}
+	ts_after = k_cycle_get_32();
+	printk("Time taken for CSPRNG generation of %d x %d bytes: %d\n",
+			num_chunks, chunk_size, k_cyc_to_us_ceil32(ts_after - ts_before));
+	printk("\n");
+}
+#endif /* CSPRNG_TEST */
 
 int main(void)
 {
 	int err;
 
 	printk("Starting Bluetooth Peripheral HIDS mouse example\n");
+
+#if CSPRNG_TEST
+	csprng_test();
+#endif
+
+#if MPU_TEST
+	MPU_Type *mpu = MPU;
+	printk("MPU type: %x\n", mpu->TYPE);
+	printk("MPU ctrl: %x\n", mpu->CTRL);
+	for (int i = 0; i < 16; i++) {
+		MPU->RNR = i;
+		printk("MPU %d rbar: %x\n", i, mpu->RBAR);
+		printk("MPU %d rlar: %x\n", i, mpu->RLAR);
+	}
+	printk("MPU MAIR0: %x\n", mpu->MAIR0);
+	printk("MPU MAIR1: %x\n", mpu->MAIR1);
+#endif
 
 	if (IS_ENABLED(CONFIG_BT_HIDS_SECURITY_ENABLED)) {
 		err = bt_conn_auth_cb_register(&conn_auth_callbacks);

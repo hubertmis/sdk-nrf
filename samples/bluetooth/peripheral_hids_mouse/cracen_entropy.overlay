@@ -1,0 +1,15 @@
+/delete-node/ &psa_rng;
+
+&global_peripherals {
+    entropy_cracen: cracen@48000 {
+        compatible = "nordic,entropy-cracen";
+        reg = <0x50048000 0x1000>;
+        status = "okay";
+    };
+};
+
+/ {
+    chosen {
+        zephyr,entropy = &entropy_cracen;
+    };
+};

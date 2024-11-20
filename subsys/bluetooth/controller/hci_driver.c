@@ -645,6 +645,7 @@ static void rand_prio_low_vector_get_blocking(uint8_t *p_buff, uint8_t length)
 {
 	int err = entropy_get_entropy(entropy_source, p_buff, length);
 
+ printk("Error: %d\n", err);
 	__ASSERT(err == 0, "The entropy source returned an error in a blocking call");
 	(void) err;
 }

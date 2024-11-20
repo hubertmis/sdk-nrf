@@ -39,6 +39,8 @@ manifest:
       url-base: https://github.com/boschsensortec
     - name: eembc
       url-base: https://github.com/eembc
+    - name: hubertmis
+      url-base: https://github.com/hubertmis
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -69,7 +71,8 @@ manifest:
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/guides/modules.html
     - name: zephyr
       repo-path: sdk-zephyr
-      revision: b524b0e61990b415fe3b011611d031b28c29d279
+      remote: hubertmis
+      revision: test/cracen-entropy
       import:
         # In addition to the zephyr repository itself, NCS also
         # imports the contents of zephyr/west.yml at the above
