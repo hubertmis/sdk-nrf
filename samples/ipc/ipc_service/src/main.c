@@ -5,12 +5,16 @@
  */
 
 #include <zephyr/kernel.h>
+#include <zephyr/cache.h>
 #include <zephyr/device.h>
 #include <string.h>
 
 #include <zephyr/logging/log.h>
 
 #include <zephyr/ipc/ipc_service.h>
+
+#include <nrf/gpd.h>
+#include <nrfx_grtc.h>
 
 #ifdef CONFIG_TEST_EXTRA_STACK_SIZE
 #define STACKSIZE	(1024 + CONFIG_TEST_EXTRA_STACK_SIZE)
@@ -89,6 +93,26 @@ int main(void)
 	const struct device *ipc0_instance;
 	struct ipc_ept ep;
 	int ret;
+
+#ifdef CONFIG_SOC_NRF54H20_CPUAPP
+    nrf_gpd_request(NRF_GPD_FAST_ACTIVE1);
+    nrfx_grtc_active_request_set(true);
+#endif
+
+#if 0
+	static volatile int *counter = (int *)0x2F89FFF0;
+#ifdef CONFIG_SOC_NRF54H20_CPUFLPR
+while (1) {
+        (*counter)++;
+    }
+#else
+    while (1) {
+        printk("Counter: %d\n", *counter);
+        k_sleep(K_MSEC(100));
+        sys_cache_data_invd_range((void *)counter, sizeof(*counter));
+    }
+#endif
+#endif
 
 	p_payload = (struct payload *) k_malloc(CONFIG_APP_IPC_SERVICE_MESSAGE_LEN);
 	if (!p_payload) {

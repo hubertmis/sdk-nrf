@@ -39,6 +39,8 @@ manifest:
       url-base: https://github.com/boschsensortec
     - name: eembc
       url-base: https://github.com/eembc
+    - name: hubertmis
+      url-base: https://github.com/hubertmis
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -68,8 +70,9 @@ manifest:
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/introduction/index.html
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/guides/modules.html
     - name: zephyr
+      remote: hubertmis
       repo-path: sdk-zephyr
-      revision: 09b87e9262d6bc87206114dc14d1d10c585fbc0f
+      revision: test/flpr-ipc-service
       import:
         # In addition to the zephyr repository itself, NCS also
         # imports the contents of zephyr/west.yml at the above
