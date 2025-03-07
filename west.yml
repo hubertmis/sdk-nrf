@@ -35,6 +35,8 @@ manifest:
       url-base: https://github.com/boschsensortec
     - name: eembc
       url-base: https://github.com/eembc
+    - name: hubertmis
+      url-base: https://github.com/hubermis
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -203,7 +205,8 @@ manifest:
         - sidewalk
     - name: find-my
       repo-path: sdk-find-my
-      revision: 447071727626162d57ed8f56d7028d3e0a08bf8f
+      remote: hubertmis
+      revision: prestudy/locator_tag
       groups:
         - find-my
     - name: azure-sdk-for-c
