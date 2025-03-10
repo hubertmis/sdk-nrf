@@ -7,9 +7,12 @@
 #include <zephyr/settings/settings.h>
 #include <zephyr/kernel.h>
 
+#include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/conn.h>
 #include <zephyr/bluetooth/gatt.h>
 #include <zephyr/bluetooth/uuid.h>
+#include <zephyr/bluetooth/cs.h>
+#include <bluetooth/services/ras.h>
 
 #include <bluetooth/services/fast_pair/fast_pair.h>
 #include <bluetooth/services/fast_pair/fmdn.h>
@@ -364,6 +367,10 @@ static void fmdn_mode_request_handle(enum app_ui_request request)
 	}
 }
 
+static K_SEM_DEFINE(sem_connected, 0, 1);
+
+static struct bt_conn *connection;
+
 static void security_changed(struct bt_conn *conn, bt_security_t level, enum bt_security_err err)
 {
 	if ((err != BT_SECURITY_ERR_SUCCESS) || (level < BT_SECURITY_L2)) {
@@ -381,14 +388,68 @@ static void security_changed(struct bt_conn *conn, bt_security_t level, enum bt_
 	fmdn_conn_auth_bm_conn_status_set(conn, true);
 }
 
+static void connected_cb(struct bt_conn *conn, uint8_t err)
+{
+	char addr[BT_ADDR_LE_STR_LEN];
+
+	(void)bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
+
+	if (err) {
+		bt_conn_unref(conn);
+		connection = NULL;
+	}
+
+	connection = bt_conn_ref(conn);
+
+	k_sem_give(&sem_connected);
+}
+
 static void disconnected(struct bt_conn *conn, uint8_t reason)
 {
 	fmdn_conn_auth_bm_conn_status_set(conn, false);
+
+	bt_conn_unref(conn);
+	connection = NULL;
+}
+
+static void remote_capabilities_cb(struct bt_conn *conn, struct bt_conn_le_cs_capabilities *params)
+{
+	ARG_UNUSED(conn);
+	ARG_UNUSED(params);
+	LOG_INF("CS capability exchange completed.");
+}
+
+static void config_created_cb(struct bt_conn *conn, struct bt_conn_le_cs_config *config)
+{
+	ARG_UNUSED(conn);
+	LOG_INF("CS config creation complete. ID: %d", config->id);
+}
+
+static void security_enabled_cb(struct bt_conn *conn)
+{
+	ARG_UNUSED(conn);
+	LOG_INF("CS security enabled.");
+}
+
+static void procedure_enabled_cb(struct bt_conn *conn,
+				 struct bt_conn_le_cs_procedure_enable_complete *params)
+{
+	ARG_UNUSED(conn);
+	if (params->state == 1) {
+		LOG_INF("CS procedures enabled.");
+	} else {
+		LOG_INF("CS procedures disabled.");
+	}
 }
 
 BT_CONN_CB_DEFINE(conn_callbacks) = {
 	.security_changed = security_changed,
+	.connected = connected_cb,
 	.disconnected = disconnected,
+	.le_cs_remote_capabilities_available = remote_capabilities_cb,
+	.le_cs_config_created = config_created_cb,
+	.le_cs_security_enabled = security_enabled_cb,
+	.le_cs_procedure_enabled = procedure_enabled_cb,
 };
 
 static void fmdn_clock_synced(void)
@@ -713,7 +774,24 @@ int main(void)
 
 	app_ui_state_change_indicate(APP_UI_STATE_APP_RUNNING, true);
 
+	while (true) {
+		k_sem_take(&sem_connected, K_FOREVER);
+
+		const struct bt_le_cs_set_default_settings_param default_settings = {
+			.enable_initiator_role = false,
+			.enable_reflector_role = true,
+			.cs_sync_antenna_selection = BT_LE_CS_ANTENNA_SELECTION_OPT_REPETITIVE,
+			.max_tx_power = BT_HCI_OP_LE_CS_MAX_MAX_TX_POWER,
+		};
+
+		err = bt_le_cs_set_default_settings(connection, &default_settings);
+		if (err) {
+			LOG_ERR("Failed to configure default CS settings (err %d)", err);
+		}
+	}
+
 	return 0;
+
 }
 
 APP_UI_REQUEST_LISTENER_REGISTER(fmdn_mode_request_handler, fmdn_mode_request_handle);
